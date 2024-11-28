@@ -2,6 +2,7 @@ import json
 import os
 import tkinter as tk
 from tkinter import messagebox, filedialog
+import tkinter.font as tkFont  # 引入tkFont用于设置字体
 
 # 数据文件路径（与脚本文件在同一目录）
 DATA_FILE = os.path.join(os.path.dirname(__file__), "storage_data.json")
@@ -47,12 +48,10 @@ def add_item():
             duplicates = [item for item in items if item in existing_items]
 
             if duplicates:
-                # 如果存在重复物品，通知用户
                 response = messagebox.askyesno("重复物品", f"已存在以下物品：{', '.join(duplicates)}\n是否仍要添加？")
                 if not response:
                     return  # 用户选择不添加，直接返回
 
-            # 添加物品
             data.setdefault(room, {}).setdefault(storage, []).extend(items)
             save_data(data)
             messagebox.showinfo("成功", "物品已成功添加！")
@@ -62,140 +61,96 @@ def add_item():
     add_window = tk.Toplevel(main_menu_window)
     add_window.title("添加物品")
 
-    tk.Label(add_window, text="房间：", anchor='e').grid(row=0, column=0, padx=10, pady=10, sticky='e')
-    entry_room = tk.Entry(add_window)
+    # 设置字体和背景色
+    font = tkFont.Font(family="Helvetica", size=12)
+    add_window.configure(bg="white")  # 设置背景为纯白
+
+    tk.Label(add_window, text="房间：", anchor='e', font=font, bg="white").grid(row=0, column=0, padx=10, pady=10, sticky='e')
+    entry_room = tk.Entry(add_window, font=font)
     entry_room.grid(row=0, column=1, padx=10, pady=10, sticky='w')
 
-    tk.Label(add_window, text="收纳处：", anchor='e').grid(row=1, column=0, padx=10, pady=10, sticky='e')
-    entry_storage = tk.Entry(add_window)
+    tk.Label(add_window, text="收纳处：", anchor='e', font=font, bg="white").grid(row=1, column=0, padx=10, pady=10, sticky='e')
+    entry_storage = tk.Entry(add_window, font=font)
     entry_storage.grid(row=1, column=1, padx=10, pady=10, sticky='w')
 
-    tk.Label(add_window, text="物品（用中文分号隔开）：", anchor='e').grid(row=2, column=0, padx=10, pady=10, sticky='e')
-    entry_items = tk.Entry(add_window)
+    tk.Label(add_window, text="物品（用中文分号隔开）：", anchor='e', font=font, bg="white").grid(row=2, column=0, padx=10, pady=10, sticky='e')
+    entry_items = tk.Entry(add_window, font=font)
     entry_items.grid(row=2, column=1, padx=10, pady=10, sticky='w')
 
-    tk.Button(add_window, text="提交", command=submit).grid(row=3, column=0, columnspan=2, pady=10)
+    # 扁平化设计的按钮
+    tk.Button(add_window, text="提交", command=submit, bg="#4CAF50", fg="white", font=font, relief="flat").grid(row=3, column=0, columnspan=2, pady=10)
 
 def find_item():
-    """查找物品的窗口和逻辑处理."""
+    """查找物品的逻辑处理."""
     def search():
-        room_name = entry_room.get().strip()
-        item_name = entry_search.get().strip()
-        data = load_data()
-        result = "未找到该物品。"
-        
-        # 查找特定房间或所有房间
-        if room_name:
-            storages = data.get(room_name, {})
-            for storage, items in storages.items():
-                if item_name in items:
-                    result = f"物品在房间'{room_name}'的收纳处'{storage}'中。"
-                    break
-        else:
-            for room, storages in data.items():
-                for storage, items in storages.items():
-                    if item_name in items:
-                        result = f"物品在房间'{room}'的收纳处'{storage}'中。"
-                        break
+        search_term = entry_search.get().strip()
+        if search_term:
+            data = load_data()
+            found_items = {room: {storage: items for storage, items in storages.items() if search_term in items} 
+                           for room, storages in data.items()}
 
-        messagebox.showinfo("查找结果", result)
+            if not any(found_items.values()):
+                messagebox.showinfo("查找物品", "未找到任何匹配的物品。")
+            else:
+                result = json.dumps(found_items, indent=4, ensure_ascii=False)
+                messagebox.showinfo("查找结果", result)
+        else:
+            messagebox.showwarning("输入错误", "请输入要查找的物品。")
 
     search_window = tk.Toplevel(main_menu_window)
     search_window.title("查找物品")
 
-    tk.Label(search_window, text="房间（可选）：", anchor='e').grid(row=0, column=0, padx=10, pady=10, sticky='e')
-    entry_room = tk.Entry(search_window)
-    entry_room.grid(row=0, column=1, padx=10, pady=10, sticky='w')
+    font = tkFont.Font(family="Helvetica", size=12)
+    search_window.configure(bg="white")
 
-    tk.Label(search_window, text="输入要查找的物品：", anchor='e').grid(row=1, column=0, padx=10, pady=10, sticky='e')
-    entry_search = tk.Entry(search_window)
-    entry_search.grid(row=1, column=1, padx=10, pady=10, sticky='w')
-    tk.Button(search_window, text="查找", command=search).grid(row=2, column=0, columnspan=2, pady=10)
+    tk.Label(search_window, text="请输入物品名称：", anchor='e', font=font, bg="white").grid(row=0, column=0, padx=10, pady=10, sticky='e')
+    entry_search = tk.Entry(search_window, font=font)
+    entry_search.grid(row=0, column=1, padx=10, pady=10, sticky='w')
+
+    tk.Button(search_window, text="搜索", command=search, bg="#4CAF50", fg="white", font=font, relief="flat").grid(row=1, column=0, columnspan=2, pady=10)
 
 def show_statistics():
-    """显示物品的统计信息."""
+    """统计信息的逻辑处理."""
     data = load_data()
-    room_count = len(data)
-    statistics = f"房间总数: {room_count}\n"
-    for room, storages in data.items():
-        statistics += f"房间: {room}\n"
-        for storage, items in storages.items():
-            statistics += f"  收纳处: {storage} - {len(items)} 个物品\n"
-    messagebox.showinfo("统计信息", statistics)
-
-def clear_data():
-    """清空数据的窗口和逻辑处理."""
-    def submit():
-        option = var.get()
-        data = load_data()
-        if option == "all":
-            os.remove(DATA_FILE)
-            messagebox.showinfo("成功", "所有数据已清空。")
-            create_empty_file_if_not_exists()  # 创建新文件
-        elif option == "room":
-            room = entry_clear_room.get().strip()
-            if room in data:
-                del data[room]
-                save_data(data)
-                messagebox.showinfo("成功", f"房间'{room}'的数据已清空。")
-            else:
-                messagebox.showwarning("错误", "未找到该房间。")
-        elif option == "storage":
-            room = entry_clear_room.get().strip()
-            storage = entry_clear_storage.get().strip()
-            if room in data and storage in data[room]:
-                del data[room][storage]
-                if not data[room]:
-                    del data[room]
-                save_data(data)
-                messagebox.showinfo("成功", f"房间'{room}'中的收纳处'{storage}'的数据已清空。")
-            else:
-                messagebox.showwarning("错误", "未找到该房间或收纳处。")
-        clear_window.destroy()
-
-    clear_window = tk.Toplevel(main_menu_window)
-    clear_window.title("清空数据")
-
-    tk.Label(clear_window, text="选择操作：", anchor='e').grid(row=0, column=0, padx=10, pady=10, sticky='e')
-
-    var = tk.StringVar(value="all")
-    tk.Radiobutton(clear_window, text="清空所有数据", variable=var, value="all").grid(row=1, column=0, columnspan=2, padx=10, pady=5, sticky='w')
-    tk.Radiobutton(clear_window, text="清空特定房间", variable=var, value="room").grid(row=2, column=0, columnspan=2, padx=10, pady=5, sticky='w')
-    tk.Radiobutton(clear_window, text="清空特定收纳处", variable=var, value="storage").grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky='w')
-
-    tk.Label(clear_window, text="房间（如适用）：", anchor='e').grid(row=4, column=0, padx=10, pady=10, sticky='e')
-    entry_clear_room = tk.Entry(clear_window)
-    entry_clear_room.grid(row=4, column=1, padx=10, pady=10, sticky='w')
-
-    tk.Label(clear_window, text="收纳处（如适用）：", anchor='e').grid(row=5, column=0, padx=10, pady=10, sticky='e')
-    entry_clear_storage = tk.Entry(clear_window)
-    entry_clear_storage.grid(row=5, column=1, padx=10, pady=10, sticky='w')
-
-    tk.Button(clear_window, text="提交", command=submit).grid(row=6, column=0, columnspan=2, pady=10)
-
-def backup_data():
-    """备份数据的窗口和逻辑处理."""
-    def submit():
-        file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON 文件", "*.json")])
-        if file_path:
-            data = load_data()
-            with open(file_path, 'w', encoding='utf-8') as file:
-                json.dump(data, file, indent=4, ensure_ascii=False)
-            messagebox.showinfo("成功", f"数据已备份到 {file_path}")
-        backup_window.destroy()
-
-    backup_window = tk.Toplevel(main_menu_window)
-    backup_window.title("备份数据")
-
-    tk.Button(backup_window, text="备份", command=submit).grid(row=0, column=0, padx=10, pady=10)
+    total_items = sum(len(storage_items) for storages in data.values() for storage_items in storages.values())
+    total_rooms = len(data)
+    if total_rooms == 0:
+        messagebox.showinfo("统计信息", "当前没有任何数据。")
+    else:
+        stats_info = f"房间总数: {total_rooms}\n物品总数: {total_items}"
+        messagebox.showinfo("统计信息", stats_info)
 
 def open_settings():
-    """打开设置窗口."""
+    """设置的逻辑处理."""
     settings_window = tk.Toplevel(main_menu_window)
     settings_window.title("设置")
 
-    tk.Button(settings_window, text="清空数据", command=clear_data).grid(row=0, column=0, padx=10, pady=10)
-    tk.Button(settings_window, text="备份数据", command=backup_data).grid(row=1, column=0, padx=10, pady=10)
+    font = tkFont.Font(family="Helvetica", size=12)
+    settings_window.configure(bg="white")
+
+    # 数据文件路径显示和修改
+    lbl_file_path = tk.Label(settings_window, text=f"当前数据文件路径：\n{DATA_FILE}", font=font, bg="white")
+    lbl_file_path.pack(padx=10, pady=(10, 0))
+
+    def change_file_path():
+        new_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON Files", "*.json")])
+        if new_path:
+            global DATA_FILE
+            DATA_FILE = new_path
+            lbl_file_path.config(text=f"当前数据文件路径：\n{DATA_FILE}")  # 更新标签显示
+
+    tk.Button(settings_window, text="修改数据文件路径", command=change_file_path, bg="#2196F3", fg="white", font=font, relief="flat").pack(pady=10)
+
+    def clear_data():
+        """清空数据文件中的所有数据."""
+        if messagebox.askyesno("确认", "您确定要清空所有数据吗？这将删除所有记录！"):
+            with open(DATA_FILE, 'w', encoding='utf-8') as file:
+                json.dump({}, file, indent=4, ensure_ascii=False)
+            messagebox.showinfo("成功", "数据已成功清空！")
+
+    tk.Button(settings_window, text="清空数据", command=clear_data, bg="#F44336", fg="white", font=font, relief="flat").pack(pady=10)
+
+
 
 def main_menu():
     """创建并显示主菜单."""
@@ -203,11 +158,15 @@ def main_menu():
     main_menu_window = tk.Toplevel()
     main_menu_window.title("YCss")
 
-    # 创建主菜单窗口的布局
-    tk.Button(main_menu_window, text="添加物品", command=add_item, width=40).grid(row=0, column=0, padx=10, pady=10, sticky='ew')
-    tk.Button(main_menu_window, text="查找物品", command=find_item, width=40).grid(row=1, column=0, padx=10, pady=10, sticky='ew')
-    tk.Button(main_menu_window, text="统计信息", command=show_statistics, width=40).grid(row=2, column=0, padx=10, pady=10, sticky='ew')
-    tk.Button(main_menu_window, text="设置", command=open_settings, width=40).grid(row=3, column=0, padx=10, pady=10, sticky='ew')
+    # 设置主菜单的背景色
+    main_menu_window.configure(bg="white")  # 设置背景为纯白
+
+    font = tkFont.Font(family="Helvetica", size=12)
+    
+    tk.Button(main_menu_window, text="添加物品", command=add_item, width=40, bg="#2196F3", fg="white", font=font, relief="flat").grid(row=0, column=0, padx=10, pady=10, sticky='ew')
+    tk.Button(main_menu_window, text="查找物品", command=find_item, width=40, bg="#2196F3", fg="white", font=font, relief="flat").grid(row=1, column=0, padx=10, pady=10, sticky='ew')
+    tk.Button(main_menu_window, text="统计信息", command=show_statistics, width=40, bg="#2196F3", fg="white", font=font, relief="flat").grid(row=2, column=0, padx=10, pady=10, sticky='ew')
+    tk.Button(main_menu_window, text="设置", command=open_settings, width=40, bg="#2196F3", fg="white", font=font, relief="flat").grid(row=3, column=0, padx=10, pady=10, sticky='ew')
 
     # 设置列的权重，使按钮居中
     main_menu_window.grid_columnconfigure(0, weight=1)
