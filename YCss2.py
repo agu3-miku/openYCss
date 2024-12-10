@@ -92,10 +92,26 @@ def find_item():
             if not any(found_items.values()):
                 messagebox.showinfo("查找物品", "未找到任何匹配的物品。")
             else:
-                result = json.dumps(found_items, indent=4, ensure_ascii=False)
-                messagebox.showinfo("查找结果", result)
+                # 创建新的窗口展示结果
+                result_window = tk.Toplevel(search_window)
+                result_window.title("查找结果")
+                
+                # 创建一个列表框展示房间和存储
+                listbox = tk.Listbox(result_window, width=80, height=20)
+                
+                for room, storages in found_items.items():
+                    for storage, items in storages.items():
+                        for item in items:
+                            listbox.insert(tk.END, f"房间: {room}  存储地点: {storage}  物品: {item}")  # 显示房间、存储地点和物品
+                        listbox.insert(tk.END, "")  # 添加空行分隔不同房间的存储地点
+
+                
+                listbox.pack(padx=10, pady=10)
+                result_window.geometry("400x400")  # 设置窗口大小
+                
         else:
             messagebox.showwarning("输入错误", "请输入要查找的物品。")
+
 
     search_window = tk.Toplevel(main_menu_window)
     search_window.title("查找物品")
